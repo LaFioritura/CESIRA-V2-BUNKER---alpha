@@ -565,7 +565,7 @@ function detectRepetition(memory, sectionName){
 }
 
 function detectLowContrast(memory){
-  const energies=(memory?.energyHistory||[]).slice(-4);
+  const energies=(memory?.energyHistory||[]).slice(-4).map(e=>typeof e==='number'?e:e?.energy).filter(v=>typeof v==='number');
   if(energies.length<3)return false;
   return (Math.max(...energies)-Math.min(...energies))<0.07;
 }
@@ -817,6 +817,7 @@ function buildSection(genre, sectionName, modeName, progression, arpeMode, prevB
   const visitCount = sectionVisits[sectionName] || 0;
   if(blueprint?.memory)blueprint.memory.sectionVisits[sectionName] = visitCount + 1;
   const macroEnergy = computeMacroEnergy(sectionName, blueprint, cycleIndex, visitCount);
+  const triggerState = evaluateCompositionTriggers(blueprint?.memory, sectionName, macroEnergy, genre);
   const structuredBars = createStructuredBarProfile(sectionName, Math.max(1, Math.ceil(Math.max(laneLen.kick,laneLen.snare,laneLen.hat,laneLen.bass,laneLen.synth)/16)), visitCount, cycleIndex, macroEnergy, soundCharacter);
   if(blueprint?.memory){
     const eh=blueprint.memory.energyHistory||[];

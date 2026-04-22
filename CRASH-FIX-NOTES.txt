@@ -1,0 +1,2 @@
+Fixed crash: triggerState undefined in buildSection.
+Also fixed lowContrast trigger reading energy history objects.
