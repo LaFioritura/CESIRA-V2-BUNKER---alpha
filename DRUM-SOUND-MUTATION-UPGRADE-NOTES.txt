@@ -1,0 +1,14 @@
+Drum sound mutation upgrade
+
+What changed:
+- Added deeper kick/snare/hat voice families with multiple real timbral profiles.
+- Added section-aware and genre-aware drum voice selection.
+- Added per-hit drum mutation for kick/snare/hat.
+- Kick is now less filtered and opens more in drop/build contexts.
+- Snare now has stronger body/snap/clap-style layering depending on context.
+- Hat now has more air, transient movement, and stereo motion.
+- Existing lane buses remain intact; this upgrade focuses on richer source voices and hit-level variation.
+
+Build status:
+- npm install OK
+- npm run build OK

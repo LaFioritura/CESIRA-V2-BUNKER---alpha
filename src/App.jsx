@@ -64,6 +64,99 @@ const GENRE_SOUND_FAMILY_MAP={
 const getGenreSoundFamilies=genre=>GENRE_SOUND_FAMILY_MAP[genre]||GENRE_SOUND_FAMILY_MAP.acid;
 const getSoundFamilyConfig=(kind,family)=>SOUND_FAMILY_PROFILES[kind]?.[family]||Object.values(SOUND_FAMILY_PROFILES[kind]||{})[0]||{};
 
+
+const DRUM_VOICE_PROFILES={
+  kick:[
+    {name:'sub_round',body:1.18,click:0.18,sub:1.18,tail:0.16,brightness:-0.18,pitch:0.96,decay:1.12,drive:0.04},
+    {name:'punch_club',body:1.0,click:0.54,sub:0.9,tail:0.1,brightness:0.04,pitch:1.0,decay:0.92,drive:0.08},
+    {name:'hard_clipped',body:0.88,click:0.82,sub:0.72,tail:0.06,brightness:0.14,pitch:1.06,decay:0.76,drive:0.18},
+    {name:'hollow_box',body:0.78,click:0.34,sub:0.76,tail:0.22,brightness:-0.08,pitch:0.99,decay:1.02,drive:0.06},
+    {name:'dirty_industrial',body:1.06,click:0.72,sub:0.82,tail:0.18,brightness:0.0,pitch:0.94,decay:0.98,drive:0.24},
+    {name:'cinematic_boom',body:0.96,click:0.12,sub:1.02,tail:0.34,brightness:-0.16,pitch:0.9,decay:1.24,drive:0.05},
+    {name:'tight_dry',body:0.86,click:0.48,sub:0.7,tail:0.05,brightness:0.1,pitch:1.04,decay:0.72,drive:0.1},
+    {name:'long_boom',body:1.02,click:0.22,sub:1.14,tail:0.26,brightness:-0.12,pitch:0.92,decay:1.32,drive:0.08},
+  ],
+  snare:[
+    {name:'dry_snap',noise:0.56,body:0.58,snap:0.76,brightness:0.08,decay:0.82,metal:0.04},
+    {name:'body_crack',noise:0.42,body:0.98,snap:0.56,brightness:0.0,decay:1.02,metal:0.0},
+    {name:'metallic_crack',noise:0.72,body:0.66,snap:0.88,brightness:0.16,decay:0.92,metal:0.22},
+    {name:'dusty_snare',noise:0.64,body:0.46,snap:0.42,brightness:-0.08,decay:1.06,metal:0.02},
+    {name:'clap_hybrid',noise:0.78,body:0.52,snap:0.72,brightness:0.12,decay:0.94,metal:0.0},
+    {name:'gated_hit',noise:0.52,body:0.74,snap:0.68,brightness:0.02,decay:0.68,metal:0.06},
+    {name:'wide_rave',noise:0.8,body:0.58,snap:0.76,brightness:0.14,decay:1.1,metal:0.04},
+    {name:'industrial_noise',noise:0.96,body:0.44,snap:0.7,brightness:0.04,decay:0.88,metal:0.18},
+  ],
+  hat:[
+    {name:'crisp_closed',noise:0.58,air:0.16,brightness:0.14,decay:0.82,open:0.84,pan:0.08},
+    {name:'dusty_tick',noise:0.46,air:-0.04,brightness:-0.04,decay:0.92,open:0.9,pan:0.06},
+    {name:'noisy_hat',noise:0.84,air:0.08,brightness:0.06,decay:1.0,open:1.04,pan:0.1},
+    {name:'metallic_hat',noise:0.64,air:0.02,brightness:0.18,decay:0.88,open:0.96,pan:0.12},
+    {name:'soft_air',noise:0.34,air:0.22,brightness:0.04,decay:1.06,open:1.08,pan:0.08},
+    {name:'broken_digital',noise:0.72,air:0.12,brightness:0.12,decay:0.84,open:0.9,pan:0.14},
+    {name:'wash_open',noise:0.62,air:0.26,brightness:0.08,decay:1.16,open:1.24,pan:0.16},
+    {name:'sharp_narrow',noise:0.48,air:0.04,brightness:0.2,decay:0.74,open:0.82,pan:0.06},
+  ],
+};
+
+function chooseDrumVoice(kind,sectionName,genre,accent,energy,variation={}){
+  const bank=DRUM_VOICE_PROFILES[kind]||[];
+  if(!bank.length)return {};
+  const sec=sectionName||'groove';
+  let idx=0;
+  if(kind==='kick'){
+    if(sec==='drop') idx=accent>0.95?1:6;
+    else if(sec==='build') idx=2;
+    else if(sec==='break') idx=5;
+    else if(sec==='cinematic') idx=7;
+    else if(sec==='fill') idx=4;
+    else idx=0;
+    if(genre==='industrial') idx=4;
+    else if(genre==='cinematic') idx=accent>0.86?5:7;
+    else if(genre==='dnb') idx=accent>0.96?1:6;
+    else if(genre==='experimental') idx=variation.variant?3:4;
+    else if(genre==='acid') idx=accent>0.96?1:2;
+  } else if(kind==='snare'){
+    if(sec==='drop') idx=1;
+    else if(sec==='build') idx=2;
+    else if(sec==='break') idx=3;
+    else if(sec==='fill') idx=5;
+    else idx=0;
+    if(genre==='industrial') idx=7;
+    else if(genre==='cinematic') idx=accent>0.88?6:3;
+    else if(genre==='experimental') idx=variation.variant?2:4;
+    else if(genre==='dnb') idx=accent>0.9?2:0;
+    else if(genre==='acid') idx=4;
+  } else if(kind==='hat'){
+    if(sec==='drop') idx=0;
+    else if(sec==='build') idx=3;
+    else if(sec==='break') idx=4;
+    else if(sec==='fill') idx=5;
+    else idx=1;
+    if(genre==='industrial') idx=3;
+    else if(genre==='cinematic') idx=4;
+    else if(genre==='experimental') idx=variation.variant?5:2;
+    else if(genre==='dnb') idx=variation.variant?6:0;
+    else if(genre==='acid') idx=variation.variant?7:0;
+  }
+  if(energy>0.82 && kind==='kick') idx=(idx+1)%bank.length;
+  if(energy<0.34 && kind==='hat') idx=4;
+  const base=bank[idx%bank.length];
+  const alt=bank[(idx + (variation.variant?1:0) + ((variation.variantBias||0)>0.12?1:0))%bank.length];
+  return (variation.variantBias||0)>0.16 && rnd()<0.52 ? alt : base;
+}
+
+function getDrumContextModifiers(kind,sectionName,energy,accent,variation={},voice={}){
+  const sec=sectionName||'groove';
+  const accentStrong=accent>0.9;
+  const toneOpen=(sec==='drop'?1.16:sec==='build'?1.06:sec==='break'?0.92:sec==='fill'?1.08:1.0) + (voice.brightness||0)*0.18 + (variation.toneShift||0)*0.08 + energy*0.06;
+  const decayMul=(sec==='drop'?0.96:sec==='build'?0.88:sec==='break'?1.08:sec==='fill'?0.9:1.0) * (voice.decay||1) * (accentStrong?0.98:1.03);
+  const transientMul=(accentStrong?1.18:0.96) * (1 + (voice.click||voice.snap||0)*0.08);
+  const driveMul=1 + (voice.drive||voice.metal||0)*0.35 + (sec==='fill'?0.06:0) + (variation.variantBias||0)*0.1;
+  const airMul=(sec==='break'?1.22:sec==='build'?1.08:1.0) * (1 + (voice.air||0)*0.4);
+  const openMul=(voice.open||1) * (sec==='break'?1.08:sec==='build'?1.02:1.0);
+  return {toneOpen,decayMul,transientMul,driveMul,airMul,openMul};
+}
+
 // ─── GENRE DNA ────────────────────────────────────────────────────────────────
 const GENRES={
   dnb:{bpm:[160,180],kick:'syncopated',swing:0.04,atmosphere:'jungle pressure',
@@ -1578,39 +1671,51 @@ export default function App(){
     const a=audioRef.current;const gd=GENRES[genre];
     const charCfg=getCharacterConfig(soundCharacterRef.current);
     const energy=compositionEnergyRef.current;
+    const sectionName=currentSectionNameRef.current||'groove';
     const drumFamilyCfg=getSoundFamilyConfig('drums', getActiveSoundFamilies(compositionRef.current,genre).drums);
-    const kickTone=clamp((drumPresetCfg.kickTone??0.6)+charCfg.toneBias*0.5+(variation.toneShift||0)+(variation.variantBias||0)+energy*0.04+(drumFamilyCfg.tone||0)*0.5,0.2,1);
+    const voice=chooseDrumVoice('kick',sectionName,genre,accent,energy,variation);
+    const ctxMod=getDrumContextModifiers('kick',sectionName,energy,accent,variation,voice);
+    const kickTone=clamp((drumPresetCfg.kickTone??0.6)+charCfg.toneBias*0.42+(variation.toneShift||0)*0.55+(variation.variantBias||0)*0.4+energy*0.04+(drumFamilyCfg.tone||0)*0.45+(voice.brightness||0)*0.18,0.18,1.15);
     const kf=gd.kickFreq||90,ke=gd.kickEnd||35;
-    const startFreq=clamp(kf*(0.92+kickTone*0.4),45,140);
-    const endFreq=clamp(ke*(0.8+kickTone*0.45),20,70);
-    const et=0.06+drumDecay*0.14+(1-kickTone)*0.03+Math.max(-0.015,(variation.decayShift||0)*0.03),dt=0.13+drumDecay*0.24+(1-kickTone)*0.04+Math.max(-0.03,(variation.decayShift||0)*0.05);
+    const startFreq=clamp(kf*(0.9+kickTone*0.34)*(voice.pitch||1)*(1+((variation.variantBias||0)-0.08)*0.03),42,160);
+    const endFreq=clamp(ke*(0.82+kickTone*0.36)*(voice.pitch?Math.max(0.82,voice.pitch*0.92):1),18,78);
+    const et=(0.055+drumDecay*0.14+(1-kickTone)*0.022+Math.max(-0.015,(variation.decayShift||0)*0.028))*ctxMod.decayMul;
+    const dt=(0.12+drumDecay*0.24+(1-kickTone)*0.032+Math.max(-0.03,(variation.decayShift||0)*0.05))*ctxMod.decayMul;
     const body=a.ctx.createOscillator(),bG=a.ctx.createGain();
     const punch=a.ctx.createOscillator(),pG=a.ctx.createGain();
     const sub=a.ctx.createOscillator(),sG=a.ctx.createGain();
     const click=a.ctx.createBufferSource(),cG=a.ctx.createGain();
     const tail=a.ctx.createOscillator(),tG=a.ctx.createGain();
+    const air=a.ctx.createBufferSource(),airF=a.ctx.createBiquadFilter(),airG=a.ctx.createGain();
     const mG=a.ctx.createGain(),sh=a.ctx.createWaveShaper(),bodyF=a.ctx.createBiquadFilter();
-    body.type=(variation.variant? (kickTone>0.68?'triangle':'sine') : (kickTone>0.8?'triangle':'sine'));
+    body.type=(voice.name==='hard_clipped'||voice.name==='tight_dry')?'triangle':(variation.variant?(kickTone>0.7?'triangle':'sine'):(kickTone>0.82?'triangle':'sine'));
     body.frequency.setValueAtTime(startFreq,t);body.frequency.exponentialRampToValueAtTime(Math.max(20,endFreq),t+et);
-    punch.type=variation.variant?(kickTone>0.56?'square':'triangle'):(kickTone>0.72?'square':'triangle');
-    punch.frequency.setValueAtTime(startFreq*1.9,t);punch.frequency.exponentialRampToValueAtTime(Math.max(30,endFreq*1.4),t+Math.max(0.018,et*0.45));
-    sub.type='sine';sub.frequency.setValueAtTime(startFreq*0.5,t);sub.frequency.exponentialRampToValueAtTime(Math.max(18,endFreq*0.5),t+et*1.05);
-    tail.type='triangle';tail.frequency.setValueAtTime(startFreq*0.98,t);tail.frequency.exponentialRampToValueAtTime(Math.max(22,endFreq*0.72),t+dt*0.9);
-    const cb=a.ctx.createBuffer(1,Math.floor(a.ctx.sampleRate*0.0045),a.ctx.sampleRate);
+    punch.type=(voice.name==='dirty_industrial'||voice.name==='hard_clipped')?'square':(kickTone>0.68?'triangle':'sine');
+    punch.frequency.setValueAtTime(startFreq*(1.7+(voice.click||0)*0.18),t);punch.frequency.exponentialRampToValueAtTime(Math.max(30,endFreq*1.35),t+Math.max(0.016,et*0.42));
+    sub.type='sine';sub.frequency.setValueAtTime(startFreq*0.5,t);sub.frequency.exponentialRampToValueAtTime(Math.max(18,endFreq*0.5),t+et*1.08);
+    tail.type=voice.name==='cinematic_boom'||voice.name==='long_boom'?'sine':'triangle';tail.frequency.setValueAtTime(startFreq*(0.94+(voice.tail||0)*0.06),t);tail.frequency.exponentialRampToValueAtTime(Math.max(22,endFreq*(0.66+(voice.tail||0)*0.2)),t+dt*0.9);
+    const cb=a.ctx.createBuffer(1,Math.floor(a.ctx.sampleRate*0.0048),a.ctx.sampleRate);
     const cd=cb.getChannelData(0);for(let i=0;i<cd.length;i++)cd[i]=(rnd()*2-1)*(1-i/cd.length);
-    click.buffer=cb;bodyF.type='lowpass';bodyF.frequency.value=clamp(500+kickTone*1800+(tone+charCfg.toneBias)*400+energy*160,280,3600);driveCurve(sh,0.08+(noiseMix+charCfg.noiseBias)*0.08+(drive+charCfg.driveBias)*0.05+kickTone*0.08+energy*0.02);
-    bG.gain.setValueAtTime(0,t);bG.gain.linearRampToValueAtTime((0.66+kickTone*0.22)*accent,t+0.0012);bG.gain.exponentialRampToValueAtTime(0.001,t+dt);
-    pG.gain.setValueAtTime(0,t);pG.gain.linearRampToValueAtTime((0.08+kickTone*0.18)*accent,t+0.0008);pG.gain.exponentialRampToValueAtTime(0.001,t+Math.max(0.022,dt*0.28));
-    sG.gain.setValueAtTime(0,t);sG.gain.linearRampToValueAtTime((0.26+bassSubAmt*0.42)*(1-kickTone*0.2)*accent,t+0.001);sG.gain.exponentialRampToValueAtTime(0.001,t+dt*1.25);
-    cG.gain.setValueAtTime(0,t);cG.gain.linearRampToValueAtTime((0.1+kickTone*0.26+noiseMix*0.1+(drumFamilyCfg.transient||0)*0.18)*accent,t+0.0005);cG.gain.exponentialRampToValueAtTime(0.001,t+0.0048+kickTone*0.003);
-    tG.gain.setValueAtTime(0,t);tG.gain.linearRampToValueAtTime((0.08+(drumFamilyCfg.transient||0)*0.12+bassSubAmt*0.12)*accent,t+0.0012);tG.gain.exponentialRampToValueAtTime(0.001,t+dt*0.75);
-    body.connect(bodyF);bodyF.connect(sh);sh.connect(bG);punch.connect(pG);sub.connect(sG);click.connect(cG);tail.connect(tG);
-    bG.connect(mG);pG.connect(mG);sG.connect(mG);cG.connect(mG);tG.connect(mG);
+    click.buffer=cb;
+    const ab=a.ctx.createBuffer(1,Math.floor(a.ctx.sampleRate*0.012),a.ctx.sampleRate);
+    const ad=ab.getChannelData(0);for(let i=0;i<ad.length;i++)ad[i]=(rnd()*2-1)*(1-i/ad.length)*(0.35+rnd()*0.65);
+    air.buffer=ab;
+    bodyF.type='lowpass';bodyF.frequency.value=clamp(((sectionName==='drop'?2200:sectionName==='build'?1500:sectionName==='break'?900:1200)*ctxMod.toneOpen)+(kickTone*2200)+(tone+charCfg.toneBias)*460+energy*180+(drumFamilyCfg.air||0)*600+(voice.brightness||0)*1400,420,7200);
+    driveCurve(sh,clamp((0.08+(noiseMix+charCfg.noiseBias)*0.06+(drive+charCfg.driveBias)*0.05+kickTone*0.06+energy*0.02+(drumFamilyCfg.drive||0)*0.12+(voice.drive||0)*0.18)*ctxMod.driveMul,0,0.6));
+    airF.type='bandpass';airF.frequency.value=clamp(1800+(voice.brightness||0)*2600+energy*800,1200,7200);airF.Q.value=0.9+(voice.click||0)*0.6;
+    bG.gain.setValueAtTime(0,t);bG.gain.linearRampToValueAtTime((0.58+(voice.body||1)*0.16+kickTone*0.14)*accent,t+0.0012);bG.gain.exponentialRampToValueAtTime(0.001,t+dt);
+    pG.gain.setValueAtTime(0,t);pG.gain.linearRampToValueAtTime((0.05+(voice.click||0)*0.18+kickTone*0.1)*accent*ctxMod.transientMul,t+0.0008);pG.gain.exponentialRampToValueAtTime(0.001,t+Math.max(0.02,dt*0.24));
+    sG.gain.setValueAtTime(0,t);sG.gain.linearRampToValueAtTime((0.18+(voice.sub||1)*0.18+bassSubAmt*0.26)*(1-kickTone*0.12)*accent,t+0.001);sG.gain.exponentialRampToValueAtTime(0.001,t+dt*1.2);
+    cG.gain.setValueAtTime(0,t);cG.gain.linearRampToValueAtTime((0.06+(voice.click||0)*0.22+noiseMix*0.06+(drumFamilyCfg.transient||0)*0.16)*accent*ctxMod.transientMul,t+0.0005);cG.gain.exponentialRampToValueAtTime(0.001,t+0.0038+Math.max(0,voice.brightness||0)*0.003+kickTone*0.0024);
+    tG.gain.setValueAtTime(0,t);tG.gain.linearRampToValueAtTime((0.04+(voice.tail||0)*0.18+(drumFamilyCfg.transient||0)*0.08)*accent,t+0.0012);tG.gain.exponentialRampToValueAtTime(0.001,t+dt*(0.68+(voice.tail||0)*0.22));
+    airG.gain.setValueAtTime(0,t);airG.gain.linearRampToValueAtTime((0.012+Math.max(0,voice.brightness||0)*0.04+Math.max(0,drumFamilyCfg.air||0)*0.02)*accent*ctxMod.airMul,t+0.0008);airG.gain.exponentialRampToValueAtTime(0.001,t+0.012+(voice.click||0)*0.004);
+    body.connect(bodyF);bodyF.connect(sh);sh.connect(bG);punch.connect(pG);sub.connect(sG);click.connect(cG);tail.connect(tG);air.connect(airF);airF.connect(airG);
+    bG.connect(mG);pG.connect(mG);sG.connect(mG);cG.connect(mG);tG.connect(mG);airG.connect(mG);
     const dest=getLaneGain('kick')||a.bus;mG.connect(dest);
     duckMixFromKick(accent,t);
-    const dur=(dt+0.12)*1000+220;trackNode(dur);
-    gc(body,[bodyF,punch,sub,click,tail,bG,pG,sG,cG,tG,mG,sh],dur);
-    ss(body,t);ss(punch,t);ss(sub,t);ss(click,t);ss(tail,t);st(body,t+dt+0.06);st(punch,t+dt*0.4+0.03);st(sub,t+dt+0.1);st(click,t+0.01);st(tail,t+dt*0.82);
+    const dur=(dt+0.14)*1000+240;trackNode(dur);
+    gc(body,[bodyF,punch,sub,click,tail,air,airF,bG,pG,sG,cG,tG,airG,mG,sh],dur);
+    ss(body,t);ss(punch,t);ss(sub,t);ss(click,t);ss(tail,t);ss(air,t);st(body,t+dt+0.06);st(punch,t+dt*0.34+0.03);st(sub,t+dt+0.1);st(click,t+0.01);st(tail,t+dt*(0.76+(voice.tail||0)*0.18));st(air,t+0.03);
   };
 
   const playSnare=(accent,t,variation={})=>{
@@ -1618,27 +1723,38 @@ export default function App(){
     const a=audioRef.current;const gd=GENRES[genre];
     const charCfg=getCharacterConfig(soundCharacterRef.current);
     const energy=compositionEnergyRef.current;
+    const sectionName=currentSectionNameRef.current||'groove';
     const drumFamilyCfg=getSoundFamilyConfig('drums', getActiveSoundFamilies(compositionRef.current,genre).drums);
-    const snareTone=clamp((drumPresetCfg.snareTone??0.6)+charCfg.toneBias*0.45+(variation.toneShift||0)+(variation.variantBias||0)+energy*0.03+(drumFamilyCfg.tone||0)*0.45,0.18,1);
-    const nb=noiseBuffer(0.16+drumDecay*0.08+Math.max(-0.03,(variation.decayShift||0)*0.04),0.18+noiseMix*0.46+(variation.ghost?0.03:0),gd.noiseColor||'white');
+    const voice=chooseDrumVoice('snare',sectionName,genre,accent,energy,variation);
+    const ctxMod=getDrumContextModifiers('snare',sectionName,energy,accent,variation,voice);
+    const snareTone=clamp((drumPresetCfg.snareTone??0.6)+charCfg.toneBias*0.42+(variation.toneShift||0)*0.45+(variation.variantBias||0)*0.42+energy*0.03+(drumFamilyCfg.tone||0)*0.34+(voice.brightness||0)*0.18,0.18,1.1);
+    const noiseDur=(0.14+drumDecay*0.1+Math.max(-0.03,(variation.decayShift||0)*0.04))*ctxMod.decayMul;
+    const nb=noiseBuffer(noiseDur,0.16+noiseMix*0.34+(voice.noise||0)*0.12+(variation.ghost?0.03:0),gd.noiseColor||'white');
     const src=a.ctx.createBufferSource(),fil=a.ctx.createBiquadFilter(),bp=a.ctx.createBiquadFilter(),snap=a.ctx.createBiquadFilter(),g=a.ctx.createGain();
     const osc=a.ctx.createOscillator(),og=a.ctx.createGain();
     const bodyOsc=a.ctx.createOscillator(),bodyG=a.ctx.createGain();
     const snapNoise=a.ctx.createBufferSource(),snapG=a.ctx.createGain();
+    const clapNoise=a.ctx.createBufferSource(),clapF=a.ctx.createBiquadFilter(),clapG=a.ctx.createGain();
     const snapBuf=noiseBuffer(0.018+noiseMix*0.01,0.46,'white');
-    src.buffer=nb; snapNoise.buffer=snapBuf;
-    fil.type='bandpass';fil.frequency.value=1200+snareTone*1400+noiseMix*300;fil.Q.value=0.8+compress*0.5+(variation.variant?0.25:0);
-    bp.type='highpass';bp.frequency.value=clamp(180+snareTone*260,120,520);
-    snap.type='bandpass';snap.frequency.value=clamp(2400+snareTone*1800+(variation.variant?320:0),1800,5200);snap.Q.value=1.1+(variation.ghost?0.2:0.5);
-    osc.type=snareTone>0.64?'triangle':'sine';osc.frequency.value=clamp(150+snareTone*110,140,320);
-    bodyOsc.type='triangle';bodyOsc.frequency.value=clamp(180+snareTone*90,150,340);
-    og.gain.setValueAtTime(0,t);og.gain.linearRampToValueAtTime((0.06+snareTone*0.2)*(variation.ghost?0.55:1)*accent,t+0.001);og.gain.exponentialRampToValueAtTime(0.001,t+0.045+drumDecay*0.08);
-    snapG.gain.setValueAtTime(0,t);snapG.gain.linearRampToValueAtTime((0.08+snareTone*0.12+energy*0.04+(drumFamilyCfg.transient||0)*0.12)*(variation.ghost?0.4:1)*accent,t+0.0007);snapG.gain.exponentialRampToValueAtTime(0.001,t+0.022+drumDecay*0.02);
-    bodyG.gain.setValueAtTime(0,t);bodyG.gain.linearRampToValueAtTime((0.06+(drumFamilyCfg.noise||0)*0.05+snareTone*0.06)*(variation.ghost?0.45:1)*accent,t+0.0012);bodyG.gain.exponentialRampToValueAtTime(0.001,t+0.08+drumDecay*0.1);
-    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime((0.34+snareTone*0.24)*(variation.ghost?0.52:1)*accent,t+0.002);g.gain.exponentialRampToValueAtTime(0.001,t+0.05+drumDecay*0.13);
-    src.connect(fil);fil.connect(bp);bp.connect(g);osc.connect(og);og.connect(g);bodyOsc.connect(bodyG);bodyG.connect(g);snapNoise.connect(snap);snap.connect(snapG);snapG.connect(g);
-    const dest=getLaneGain('snare')||a.bus;g.connect(dest);
-    gc(src,[fil,bp,snap,g,osc,og,bodyOsc,bodyG,snapNoise,snapG],620);ss(src,t);ss(osc,t);ss(bodyOsc,t);ss(snapNoise,t);st(src,t+0.2);st(osc,t+0.08+drumDecay*0.06);st(bodyOsc,t+0.1+drumDecay*0.08);st(snapNoise,t+0.03);
+    const clapBuf=noiseBuffer(0.038+noiseMix*0.012,0.38,'white');
+    src.buffer=nb; snapNoise.buffer=snapBuf; clapNoise.buffer=clapBuf;
+    fil.type='bandpass';fil.frequency.value=clamp(900+snareTone*1800+(voice.brightness||0)*600+noiseMix*280,520,3600);fil.Q.value=0.7+compress*0.42+(voice.metal||0)*0.4;
+    bp.type='highpass';bp.frequency.value=clamp(140+snareTone*260+(voice.body||0)*40,90,620);
+    snap.type='bandpass';snap.frequency.value=clamp(2400+snareTone*1900+(voice.brightness||0)*1200+(variation.variant?260:0),1700,6400);snap.Q.value=1.1+(voice.snap||0)*0.4+(variation.ghost?0.15:0.4);
+    clapF.type='bandpass';clapF.frequency.value=clamp(1500+snareTone*900+(voice.brightness||0)*600,900,4200);clapF.Q.value=0.85;
+    osc.type=snareTone>0.6?'triangle':'sine';osc.frequency.value=clamp(140+snareTone*110+(voice.body||0)*22,120,320);
+    bodyOsc.type=voice.name==='metallic_crack'?'square':'triangle';bodyOsc.frequency.value=clamp(170+snareTone*100+(voice.body||0)*26,130,360);
+    og.gain.setValueAtTime(0,t);og.gain.linearRampToValueAtTime((0.04+(voice.snap||0)*0.16+snareTone*0.1)*(variation.ghost?0.55:1)*accent,t+0.001);og.gain.exponentialRampToValueAtTime(0.001,t+0.04*ctxMod.decayMul+drumDecay*0.08);
+    snapG.gain.setValueAtTime(0,t);snapG.gain.linearRampToValueAtTime((0.05+(voice.snap||0)*0.18+energy*0.03+(drumFamilyCfg.transient||0)*0.1)*(variation.ghost?0.4:1)*accent*ctxMod.transientMul,t+0.0007);snapG.gain.exponentialRampToValueAtTime(0.001,t+0.018+drumDecay*0.02+(voice.snap||0)*0.01);
+    bodyG.gain.setValueAtTime(0,t);bodyG.gain.linearRampToValueAtTime((0.03+(voice.body||0)*0.12+snareTone*0.04)*(variation.ghost?0.46:1)*accent,t+0.0012);bodyG.gain.exponentialRampToValueAtTime(0.001,t+0.07+drumDecay*0.1+(voice.decay||1)*0.012);
+    clapG.gain.setValueAtTime(0,t);clapG.gain.linearRampToValueAtTime((voice.name==='clap_hybrid'||voice.name==='wide_rave'?0.06:0.025)*(variation.ghost?0.24:1)*accent,t+0.001);clapG.gain.exponentialRampToValueAtTime(0.001,t+0.045+(voice.decay||1)*0.02);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime((0.28+snareTone*0.18+(voice.body||0)*0.08)*(variation.ghost?0.52:1)*accent,t+0.002);g.gain.exponentialRampToValueAtTime(0.001,t+0.048+drumDecay*0.14+(voice.decay||1)*0.02);
+    src.connect(fil);fil.connect(bp);bp.connect(g);osc.connect(og);og.connect(g);bodyOsc.connect(bodyG);bodyG.connect(g);snapNoise.connect(snap);snap.connect(snapG);snapG.connect(g);clapNoise.connect(clapF);clapF.connect(clapG);clapG.connect(g);
+    const destBase=getLaneGain('snare')||a.bus;
+    const panNode=a.ctx.createStereoPanner?a.ctx.createStereoPanner():null;
+    if(panNode){panNode.pan.value=clamp((voice.name==='wide_rave'?0.1:0)+(variation.variant?0.04:-0.04),-0.24,0.24);g.connect(panNode);panNode.connect(destBase);}else{g.connect(destBase);}
+    gc(src,[fil,bp,snap,g,osc,og,bodyOsc,bodyG,snapNoise,snapG,clapNoise,clapF,clapG],760);
+    ss(src,t);ss(osc,t);ss(bodyOsc,t);ss(snapNoise,t);ss(clapNoise,t);st(src,t+0.22);st(osc,t+0.08+drumDecay*0.06);st(bodyOsc,t+0.1+drumDecay*0.08);st(snapNoise,t+0.03);st(clapNoise,t+0.06);
   };
 
   const playHat=(accent,t,open=false,variation={})=>{
@@ -1646,18 +1762,28 @@ export default function App(){
     const a=audioRef.current;const gd=GENRES[genre];
     const charCfg=getCharacterConfig(soundCharacterRef.current);
     const energy=compositionEnergyRef.current;
-    const hatTone=clamp((drumPresetCfg.hatTone??0.8)+charCfg.toneBias*0.55+(variation.toneShift||0)+(variation.variantBias||0)+energy*0.02,0.22,1);
-    const nb=noiseBuffer(open?0.26+drumDecay*0.08+Math.max(-0.02,(variation.decayShift||0)*0.04):0.08+drumDecay*0.04+Math.max(-0.01,(variation.decayShift||0)*0.015),0.14+noiseMix*0.32+(variation.variant?0.02:0),gd.noiseColor||'white');
+    const sectionName=currentSectionNameRef.current||'groove';
+    const drumFamilyCfg=getSoundFamilyConfig('drums', getActiveSoundFamilies(compositionRef.current,genre).drums);
+    const voice=chooseDrumVoice('hat',sectionName,genre,accent,energy,variation);
+    const ctxMod=getDrumContextModifiers('hat',sectionName,energy,accent,variation,voice);
+    const hatTone=clamp((drumPresetCfg.hatTone??0.8)+charCfg.toneBias*0.48+(variation.toneShift||0)*0.5+(variation.variantBias||0)*0.42+energy*0.02+(voice.brightness||0)*0.16,0.18,1.12);
+    const noiseAmt=(0.12+noiseMix*0.3+(voice.noise||0)*0.08+(variation.variant?0.01:0));
+    const nb=noiseBuffer(open?(0.22+drumDecay*0.08)*ctxMod.openMul:(0.072+drumDecay*0.03)*ctxMod.decayMul,noiseAmt,gd.noiseColor||'white');
     const src=a.ctx.createBufferSource(),hp=a.ctx.createBiquadFilter(),bp=a.ctx.createBiquadFilter(),air=a.ctx.createBiquadFilter(),g=a.ctx.createGain();
-    src.buffer=nb;hp.type='highpass';hp.frequency.value=open?clamp(5200+hatTone*2200,4200,9200):clamp(6800+hatTone*2400,5800,12000);
-    bp.type='bandpass';bp.frequency.value=open?clamp(7600+hatTone*2600+(variation.variant?260:-120),6200,12000):clamp(9000+hatTone*2200+(variation.variant?-320:180),7600,14000);bp.Q.value=open?(variation.variant?0.75:0.9):(variation.variant?1.1:1.4);
-    air.type='highshelf';air.frequency.value=clamp(7000+hatTone*3200,6200,15000);air.gain.value=variation.variant?2.8:1.8+energy*1.2;
-    const decay=open?0.05+drumDecay*0.22+hatTone*0.02:0.006+drumDecay*0.032+(1-hatTone)*0.01;
-    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime((0.18+hatTone*0.18)*accent,t+0.0009);g.gain.exponentialRampToValueAtTime(0.001,t+decay);
-    src.connect(hp);hp.connect(bp);bp.connect(air);air.connect(g);const dest=getLaneGain('hat')||a.bus;const panNode=a.ctx.createStereoPanner?a.ctx.createStereoPanner():null; if(panNode){panNode.pan.value=clamp((variation.variant?0.14:-0.14)+(open?0.05:-0.03),-0.4,0.4);g.connect(panNode);panNode.connect(dest);}else{g.connect(dest);}
-    gc(src,[hp,bp,air,g],650);ss(src,t);st(src,t+(open?0.35:0.15));
+    const transient=a.ctx.createBufferSource(),trF=a.ctx.createBiquadFilter(),trG=a.ctx.createGain();
+    src.buffer=nb;
+    const trBuf=noiseBuffer(0.01,0.28,'white'); transient.buffer=trBuf;
+    hp.type='highpass';hp.frequency.value=open?clamp(4800+hatTone*2400+(voice.brightness||0)*1200,3600,11000):clamp(6200+hatTone*2600+(voice.brightness||0)*800,5200,14000);
+    bp.type='bandpass';bp.frequency.value=open?clamp(7200+hatTone*2500+(variation.variant?240:-80)+(voice.brightness||0)*1200,5600,13000):clamp(8600+hatTone*2200+(variation.variant?-260:160)+(voice.brightness||0)*900,7000,15000);bp.Q.value=open?(variation.variant?0.8:0.95):(variation.variant?1.0:1.36);
+    air.type='highshelf';air.frequency.value=clamp(7200+hatTone*3000,6200,16000);air.gain.value=((variation.variant?2.2:1.5+energy*1.1)+(voice.air||0)*4+(drumFamilyCfg.air||0)*2)*ctxMod.airMul;
+    trF.type='bandpass';trF.frequency.value=clamp(7000+(voice.brightness||0)*2400,5200,14000);trF.Q.value=1.2+(voice.air||0)*0.5;
+    const decay=(open?0.042+drumDecay*0.18:0.006+drumDecay*0.028)*(voice.decay||1)*ctxMod.decayMul;
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime((0.14+hatTone*0.13)*accent,t+0.0009);g.gain.exponentialRampToValueAtTime(0.001,t+decay);
+    trG.gain.setValueAtTime(0,t);trG.gain.linearRampToValueAtTime((0.02+(voice.brightness||0)*0.03+(voice.air||0)*0.02)*accent*ctxMod.transientMul,t+0.0004);trG.gain.exponentialRampToValueAtTime(0.001,t+0.006+(voice.air||0)*0.004);
+    src.connect(hp);hp.connect(bp);bp.connect(air);air.connect(g); transient.connect(trF); trF.connect(trG); trG.connect(g);
+    const dest=getLaneGain('hat')||a.bus;const panNode=a.ctx.createStereoPanner?a.ctx.createStereoPanner():null; if(panNode){panNode.pan.value=clamp(((variation.variant?0.16:-0.16)+(open?0.06:-0.03))*((voice.pan||0.08)/0.08),-0.5,0.5);g.connect(panNode);panNode.connect(dest);}else{g.connect(dest);}
+    gc(src,[hp,bp,air,g,transient,trF,trG],660);ss(src,t);ss(transient,t);st(src,t+(open?0.34*ctxMod.openMul:0.14));st(transient,t+0.012);
   };
-
 
   const getVoiceNotes=(baseNote,lane='synth')=>{
     const mode=MODES[modeName]||MODES.minor;
