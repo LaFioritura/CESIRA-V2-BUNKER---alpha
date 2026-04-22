@@ -460,6 +460,47 @@ function choosePassingTone(current,target,pool,lane,energy){
   return rnd()<0.18 && Math.abs(diff)>2 ? (pool[clamp(ci+step*2,0,pool.length-1)]||mid) : mid;
 }
 
+function getSynthChordVoicing(baseNote,pool,sectionName='groove',style='triad'){
+  const idx=noteIndexSafe(pool,baseNote);
+  const third=pool[clamp(idx+2,0,pool.length-1)]||transposeNote(baseNote,4);
+  const fifth=pool[clamp(idx+4,0,pool.length-1)]||transposeNote(baseNote,7);
+  const seventh=pool[clamp(idx+6,0,pool.length-1)]||transposeNote(baseNote,10);
+  const add9=pool[clamp(idx+8,0,pool.length-1)]||transposeNote(baseNote,14);
+  if(style==='open')return [...new Set([baseNote,fifth,add9])];
+  if(style==='seventh')return [...new Set([baseNote,third,fifth,seventh])];
+  if(sectionName==='ambient'||sectionName==='break')return [...new Set([baseNote,fifth,add9])];
+  return [...new Set([baseNote,third,fifth])];
+}
+
+function applySynthExpression(line,lengths,active,pool,sectionName='groove',opts={}){
+  const chordChance=clamp(opts.chordChance??0.36,0,1);
+  const holdAmt=clamp(opts.holdAmt??0.5,0,1);
+  const curve=opts.curve||'balanced';
+  const outLine=[...line];
+  const outLengths=[...lengths];
+  for(let i=0;i<outLine.length;i++){
+    if(!active[i])continue;
+    const local=i%16;
+    const anchor=local===0||local===8;
+    const halfCadence=local===4||local===12;
+    const shouldChord = anchor ? rnd()<chordChance*(sectionName==='drop'?1.1:sectionName==='break'?0.72:1) : halfCadence && rnd()<chordChance*0.38;
+    if(shouldChord && !Array.isArray(outLine[i])){
+      const style = curve==='glass'?'open':curve==='bloom'?'seventh':sectionName==='ambient'?'open':'triad';
+      outLine[i]=getSynthChordVoicing(outLine[i],pool,sectionName,style);
+    }
+    const baseLen=outLengths[i]||1;
+    let holdMult = 1 + holdAmt*(anchor?2.8:halfCadence?1.6:0.7);
+    if(curve==='snappy')holdMult*=anchor?1.2:0.72;
+    if(curve==='soft')holdMult*=1.28;
+    if(curve==='bloom')holdMult*=1.62;
+    if(curve==='glass')holdMult*=1.08;
+    if(sectionName==='break'||sectionName==='ambient')holdMult*=1.22;
+    if(anchor||halfCadence)outLengths[i]=Math.min(16,Math.max(baseLen,baseLen*holdMult));
+  }
+  return {line:outLine,lengths:outLengths};
+}
+
+
 // ─── MELODIC PHRASE BUILDER ───────────────────────────────────────────────────
 // Creates motif/reply phrases with recall, section energy and controlled mutation
 function buildMelodicLine(pool, chordProgression, steps, chaos, arpeMode, lenBias, options={}){
@@ -622,7 +663,14 @@ function buildSection(genre, sectionName, modeName, progression, arpeMode, prevB
   const bassBuilt = buildMelodicLine(bp, progression, laneLen.bass, chaos, arpeMode, bassLb, {lane:'bass', sectionName, blueprint, cycleIndex:cycleIndex+visitCount});
   const synthBuilt = buildMelodicLine(sp, progression, laneLen.synth, chaos * 0.72, arpeMode, synthLb, {lane:'synth', sectionName, blueprint, cycleIndex:cycleIndex+visitCount});
   const {line: bassLine, lengths: bassLengths, active: bassActive} = bassBuilt;
-  const {line: synthLine, lengths: synthLengths, active: synthActive} = synthBuilt;
+  let {line: synthLine, lengths: synthLengths, active: synthActive} = synthBuilt;
+  const synthExpression = applySynthExpression(synthLine, synthLengths, synthActive, sp, sectionName, {
+    chordChance: typeof globalThis!=='undefined' && typeof globalThis.__CESIRA_SYNTH_CHORD_CHANCE__==='number' ? globalThis.__CESIRA_SYNTH_CHORD_CHANCE__ : 0.34,
+    holdAmt: typeof globalThis!=='undefined' && typeof globalThis.__CESIRA_SYNTH_HOLD__==='number' ? globalThis.__CESIRA_SYNTH_HOLD__ : 0.56,
+    curve: typeof globalThis!=='undefined' && globalThis.__CESIRA_SYNTH_CURVE__ ? globalThis.__CESIRA_SYNTH_CURVE__ : 'balanced',
+  });
+  synthLine = synthExpression.line;
+  synthLengths = synthExpression.lengths;
   if(prevBass && bassLine.length)bassLine[0] = voiceLead(prevBass, [bassLine[0], ...(chordNotes(progression[0], bp))].filter(Boolean));
 
   const p = {kick:mkSteps(), snare:mkSteps(), hat:mkSteps(), bass:mkSteps(), synth:mkSteps()};
@@ -879,6 +927,9 @@ const getDrumPresetCfg=key=>SOUND_PRESETS.drum[key]||SOUND_PRESETS.drum.tight_pu
 
 const PATTERN_AUTHORITY_LEVELS=['lock','assist','evolve'];
 const defaultPatternAuthority=()=>({drums:'assist',bass:'assist',synth:'assist'});
+const defaultLaneVolume=()=>({kick:0.96,snare:0.92,hat:0.78,bass:0.9,synth:0.88});
+const defaultLaneProbability=()=>({kick:1,snare:1,hat:1,bass:1,synth:1});
+const SYNTH_CURVES=['balanced','soft','snappy','bloom','glass'];
 const laneAuthorityKey=lane=>(lane==='kick'||lane==='snare'||lane==='hat')?'drums':lane;
 const preserveLockedLanes=(generated,currentPatterns,currentBass,currentSynth,authority)=>{
   const next={...generated,patterns:{...generated.patterns},bassLine:[...generated.bassLine],synthLine:[...generated.synthLine]};
@@ -997,6 +1048,21 @@ export default function App(){
   const [patternAuthority,setPatternAuthority]=useState(defaultPatternAuthority());
   const patternAuthorityRef=useRef(defaultPatternAuthority());
   useEffect(()=>{patternAuthorityRef.current=patternAuthority;},[patternAuthority]);
+  const [laneVolume,setLaneVolume]=useState(defaultLaneVolume());
+  const laneVolumeRef=useRef(defaultLaneVolume());
+  useEffect(()=>{laneVolumeRef.current=laneVolume;},[laneVolume]);
+  const [laneProbability,setLaneProbability]=useState(defaultLaneProbability());
+  const laneProbabilityRef=useRef(defaultLaneProbability());
+  useEffect(()=>{laneProbabilityRef.current=laneProbability;},[laneProbability]);
+  const [synthChordChance,setSynthChordChance]=useState(0.34);
+  const synthChordChanceRef=useRef(0.34);
+  useEffect(()=>{synthChordChanceRef.current=synthChordChance; if(typeof globalThis!=='undefined')globalThis.__CESIRA_SYNTH_CHORD_CHANCE__=synthChordChance;},[synthChordChance]);
+  const [synthHold,setSynthHold]=useState(0.56);
+  const synthHoldRef=useRef(0.56);
+  useEffect(()=>{synthHoldRef.current=synthHold; if(typeof globalThis!=='undefined')globalThis.__CESIRA_SYNTH_HOLD__=synthHold;},[synthHold]);
+  const [synthCurve,setSynthCurve]=useState('balanced');
+  const synthCurveRef=useRef('balanced');
+  useEffect(()=>{synthCurveRef.current=synthCurve; if(typeof globalThis!=='undefined')globalThis.__CESIRA_SYNTH_CURVE__=synthCurve;},[synthCurve]);
 
   // ── Autopilot
   const [autopilot,setAutopilot]=useState(false);
@@ -1111,9 +1177,16 @@ export default function App(){
   const laneGains=useRef({});
   const getLaneGain=(lane)=>{
     const a=audioRef.current;if(!a)return null;
-    if(!laneGains.current[lane]){const g=a.ctx.createGain();g.gain.value=1;g.connect(a.bus);laneGains.current[lane]=g;}
+    if(!laneGains.current[lane]){const g=a.ctx.createGain();g.gain.value=laneVolumeRef.current[lane]??1;g.connect(a.bus);laneGains.current[lane]=g;}
     return laneGains.current[lane];
   };
+  useEffect(()=>{
+    const a=audioRef.current;if(!a)return;
+    Object.entries(laneVolume).forEach(([lane,val])=>{
+      const g=getLaneGain(lane);if(!g)return;
+      try{g.gain.cancelScheduledValues(a.ctx.currentTime);g.gain.setTargetAtTime(clamp(val,0,1.2),a.ctx.currentTime,0.02);}catch{g.gain.value=clamp(val,0,1.2);}
+    });
+  },[laneVolume,isReady]);
 
   const ss=(n,t)=>{try{n.start(t);}catch{}};
   const st=(n,t)=>{try{n.stop(t);}catch{}};
@@ -1188,14 +1261,15 @@ export default function App(){
     const bassGain=laneGains.current.bass;
     const synthGain=laneGains.current.synth;
     const duckAmt=clamp(0.84-(accent*0.12+compress*0.05),0.66,0.9);
-    [bassGain,synthGain].forEach((g,idx)=>{
+    [['bass',bassGain],['synth',synthGain]].forEach(([lane,g],idx)=>{
       if(!g)return;
       const release=idx===0?0.12:0.18;
+      const base=clamp(laneVolumeRef.current[lane]??1,0.001,1.2);
       try{
         g.gain.cancelScheduledValues(t);
-        g.gain.setValueAtTime(g.gain.value||1,t);
-        g.gain.linearRampToValueAtTime(duckAmt,t+0.008);
-        g.gain.exponentialRampToValueAtTime(0.999,t+release);
+        g.gain.setValueAtTime(Math.max(0.001,g.gain.value||base),t);
+        g.gain.linearRampToValueAtTime(Math.max(0.001,base*duckAmt),t+0.008);
+        g.gain.exponentialRampToValueAtTime(Math.max(0.001,base),t+release);
       }catch{}
     });
   };
@@ -1359,17 +1433,20 @@ export default function App(){
     if(!nodeGuard())return;
     const a=audioRef.current;
     const f=NOTE_FREQ[note]||440;
-    const dur=clamp(stepSec()*lenSteps*0.92,0.04,6);
+    const baseDur=stepSec()*lenSteps*0.92;
     const mode=synthPresetCfg.synthMode||GENRES[genre].synthMode||'lead';
     const charCfg=getCharacterConfig(soundCharacterRef.current);
     const energy=compositionEnergyRef.current;
-    const cleanMs=(dur+1.5)*1000;
     const synthDetune=synthPresetCfg.synthDetune??0.008;
     const synthMotion=synthPresetCfg.synthMotion??0.3;
     const synthPunch=synthPresetCfg.synthPunch??0.5;
+    const curve=synthCurveRef.current||'balanced';
+    const holdBoost=1+synthHoldRef.current*(curve==='bloom'?1.35:curve==='soft'?1.12:curve==='snappy'?0.35:curve==='glass'?0.82:0.9);
+    const dur=clamp(baseDur*holdBoost,0.05,10);
+    const cleanMs=(dur+1.5)*1000;
 
     if(mode==='glass'||mode==='bell'){
-      const atk=0.001,rel=Math.max(0.3,dur*1.2+synthFilter*2);
+      const atk=curve==='soft'?0.003:0.001,rel=Math.max(curve==='snappy'?0.22:0.3,dur*(curve==='bloom'?1.55:1.2)+synthFilter*(curve==='glass'?1.6:2));
       const nb=noiseBuffer(0.04,1,'white');
       const src=a.ctx.createBufferSource();src.buffer=nb;
       const dly=a.ctx.createDelay(0.05);dly.delayTime.value=1/f;
@@ -1492,7 +1569,8 @@ export default function App(){
       const shouldExtra=runtimeVar?.extra && (lane==='hat'||lane==='snare'||lane==='kick');
       if((!sd||!sd.on) && !shouldGhost && !shouldExtra)continue;
       if(sd?.tied)continue;
-      if(sd?.p<1&&rnd()>sd.p && !shouldGhost && !shouldExtra)continue;
+      const laneProb=clamp(laneProbabilityRef.current[lane]??1,0,1);
+      if((sd?.p<1&&rnd()>sd.p || laneProb<1&&rnd()>laneProb) && !shouldGhost && !shouldExtra)continue;
       const ga=grooveAccent(grooveProfileRef.current,lane,li,grooveRef.current);
       const laneEnergyBoost=lane==='kick'?0.04:lane==='bass'?0.03:lane==='synth'?0.02:0.01;
       const baseAccent=clamp(accent*ga*((sd?.v)||1)*(runtimeVar?.accentMul||1)*(0.96+runtimeEnergy*laneEnergyBoost+charCfg.accentBias),0.08,1.15);
@@ -1813,7 +1891,7 @@ export default function App(){
   const serialize=()=>({
     v:5,genre,modeName,bpm,currentSectionName,grooveProfile,arpMode:arpModeRef.current,progression:progressionRef.current,
     space,tone,noiseMix,drive,compress,bassFilter,synthFilter,drumDecay,bassSubAmt,fmIdx,
-    master,swing,humanize,grooveAmt,projectName,polySynth,bassStack,bassPreset,synthPreset,drumPreset,performancePreset,soundCharacter,compositionEnergy,patternAuthority,genreFamily:compositionRef.current?.genreFamily||getGenreFamilyProfile(genre),
+    master,swing,humanize,grooveAmt,projectName,polySynth,bassStack,bassPreset,synthPreset,drumPreset,performancePreset,soundCharacter,compositionEnergy,patternAuthority,laneVolume,laneProbability,synthChordChance,synthHold,synthCurve,genreFamily:compositionRef.current?.genreFamily||getGenreFamilyProfile(genre),
     patterns,bassLine,synthLine,laneLen,
   });
   const applySnap=(snap)=>{
@@ -1830,7 +1908,7 @@ export default function App(){
     setSpace(snap.space??0.3);setTone(snap.tone??0.7);setNoiseMix(snap.noiseMix??0.2);setDrive(snap.drive??0.1);
     setCompress(snap.compress??0.3);setBassFilter(snap.bassFilter??0.55);setSynthFilter(snap.synthFilter??0.65);
     setDrumDecay(snap.drumDecay??0.5);setBassSubAmt(snap.bassSubAmt??0.5);setFmIdx(snap.fmIdx??0.6);
-    setMaster(snap.master??0.85);setSwing(snap.swing??0.03);setHumanize(snap.humanize??0.012);setGrooveAmt(snap.grooveAmt??0.65);setPolySynth(snap.polySynth??true);setBassStack(snap.bassStack??true);setBassPreset(snap.bassPreset??'sub_floor');setSynthPreset(snap.synthPreset??'velvet_pad');setDrumPreset(snap.drumPreset??'tight_punch');setPerformancePreset(snap.performancePreset??'club_night');setSoundCharacter(snap.soundCharacter??compositionRef.current.soundCharacter??getGenreSoundCharacter(snap.genre||'techno'));soundCharacterRef.current=snap.soundCharacter??compositionRef.current.soundCharacter??getGenreSoundCharacter(snap.genre||'techno');setCompositionEnergy(snap.compositionEnergy??0.68);compositionEnergyRef.current=snap.compositionEnergy??0.68;const nextAuthority={...defaultPatternAuthority(),...(snap.patternAuthority||{})};setPatternAuthority(nextAuthority);patternAuthorityRef.current=nextAuthority;
+    setMaster(snap.master??0.85);setSwing(snap.swing??0.03);setHumanize(snap.humanize??0.012);setGrooveAmt(snap.grooveAmt??0.65);setPolySynth(snap.polySynth??true);setBassStack(snap.bassStack??true);setBassPreset(snap.bassPreset??'sub_floor');setSynthPreset(snap.synthPreset??'velvet_pad');setDrumPreset(snap.drumPreset??'tight_punch');setPerformancePreset(snap.performancePreset??'club_night');setSoundCharacter(snap.soundCharacter??compositionRef.current.soundCharacter??getGenreSoundCharacter(snap.genre||'techno'));soundCharacterRef.current=snap.soundCharacter??compositionRef.current.soundCharacter??getGenreSoundCharacter(snap.genre||'techno');setCompositionEnergy(snap.compositionEnergy??0.68);compositionEnergyRef.current=snap.compositionEnergy??0.68;const nextAuthority={...defaultPatternAuthority(),...(snap.patternAuthority||{})};setPatternAuthority(nextAuthority);patternAuthorityRef.current=nextAuthority;const nextLaneVolume={...defaultLaneVolume(),...(snap.laneVolume||{})};setLaneVolume(nextLaneVolume);laneVolumeRef.current=nextLaneVolume;const nextLaneProbability={...defaultLaneProbability(),...(snap.laneProbability||{})};setLaneProbability(nextLaneProbability);laneProbabilityRef.current=nextLaneProbability;const nextSynthChordChance=snap.synthChordChance??0.34;setSynthChordChance(nextSynthChordChance);synthChordChanceRef.current=nextSynthChordChance;const nextSynthHold=snap.synthHold??0.56;setSynthHold(nextSynthHold);synthHoldRef.current=nextSynthHold;const nextSynthCurve=SYNTH_CURVES.includes(snap.synthCurve)?snap.synthCurve:'balanced';setSynthCurve(nextSynthCurve);synthCurveRef.current=nextSynthCurve;
     if(snap.projectName)setProjectName(snap.projectName);
     if(snap.patterns){setPatterns(snap.patterns);patternsRef.current=snap.patterns;}
     if(snap.bassLine){setBassLine(snap.bassLine);bassRef.current=snap.bassLine;}
@@ -2177,6 +2255,11 @@ export default function App(){
         songArc={songArc} arcIdx={arcIdx} songActive={songActive}
         bassPreset={bassPreset} synthPreset={synthPreset} drumPreset={drumPreset} performancePreset={performancePreset}
         applyBassPreset={applyBassPreset} applySynthPreset={applySynthPreset} applyDrumPreset={applyDrumPreset} applyPerformancePreset={applyPerformancePreset}
+        laneVolume={laneVolume} setLaneVolume={setLaneVolume}
+        laneProbability={laneProbability} setLaneProbability={setLaneProbability}
+        synthChordChance={synthChordChance} setSynthChordChance={setSynthChordChance}
+        synthHold={synthHold} setSynthHold={setSynthHold}
+        synthCurve={synthCurve} setSynthCurve={setSynthCurve}
         compact={isCompact} phone={isPhone}
       />}
 
@@ -2211,6 +2294,11 @@ export default function App(){
         clearPattern={clearPattern} polySynth={polySynth} setPolySynth={setPolySynth} bassStack={bassStack} setBassStack={setBassStack}
         bassPreset={bassPreset} synthPreset={synthPreset} drumPreset={drumPreset} performancePreset={performancePreset}
         applyBassPreset={applyBassPreset} applySynthPreset={applySynthPreset} applyDrumPreset={applyDrumPreset} applyPerformancePreset={applyPerformancePreset}
+        laneVolume={laneVolume} setLaneVolume={setLaneVolume}
+        laneProbability={laneProbability} setLaneProbability={setLaneProbability}
+        synthChordChance={synthChordChance} setSynthChordChance={setSynthChordChance}
+        synthHold={synthHold} setSynthHold={setSynthHold}
+        synthCurve={synthCurve} setSynthCurve={setSynthCurve}
         compact={isCompact} phone={isPhone}
       />}
 
@@ -2233,7 +2321,7 @@ export default function App(){
 // ─────────────────────────────────────────────────────────────────────────────
 // PERFORM VIEW — full-screen live performance interface
 // ─────────────────────────────────────────────────────────────────────────────
-function PerformView({genre,gc,isPlaying,currentSectionName,laneVU,patterns,bassLine,synthLine,laneLen,step,page,setPage,activeNotes,arpeMode,modeName,autopilot,autopilotIntensity,setAutopilotIntensity,perfActions,regenerateSection,savedScenes,saveScene,loadScene,master,setMaster,space,setSpace,tone,setTone,drive,setDrive,grooveAmt,setGrooveAmt,swing,setSwing,toggleCell,songArc,arcIdx,songActive,setNote,bassPreset,synthPreset,drumPreset,performancePreset,applyBassPreset,applySynthPreset,applyDrumPreset,applyPerformancePreset,compact,phone}){
+function PerformView({genre,gc,isPlaying,currentSectionName,laneVU,patterns,bassLine,synthLine,laneLen,step,page,setPage,activeNotes,arpeMode,modeName,autopilot,autopilotIntensity,setAutopilotIntensity,perfActions,regenerateSection,savedScenes,saveScene,loadScene,master,setMaster,space,setSpace,tone,setTone,drive,setDrive,grooveAmt,setGrooveAmt,swing,setSwing,toggleCell,songArc,arcIdx,songActive,setNote,bassPreset,synthPreset,drumPreset,performancePreset,applyBassPreset,applySynthPreset,applyDrumPreset,applyPerformancePreset,laneVolume,setLaneVolume,laneProbability,setLaneProbability,synthChordChance,setSynthChordChance,synthHold,setSynthHold,synthCurve,setSynthCurve,compact,phone}){
   const SECTION_COLORS={drop:'#ff2244',break:'#4488ff',build:'#ffaa00',groove:'#00cc66',tension:'#ff6622',fill:'#cc00ff',intro:'#44ffcc',outro:'#aaaaaa'};
   const sc=SECTION_COLORS[currentSectionName]||gc;
   const visibleStart=page*16,visibleEnd=Math.min(visibleStart+16,MAX_STEPS);
@@ -2398,6 +2486,30 @@ function PerformView({genre,gc,isPlaying,currentSectionName,laneVU,patterns,bass
           </div>
         ))}
 
+        <div style={{fontSize:6.75,color:'rgba(255,255,255,0.9)',letterSpacing:'0.18em',textTransform:'uppercase',marginTop:1}}>LANES</div>
+        {[
+          {label:'DRUM VOL',value:laneVolume.kick,min:0,max:1.2,color:'#ffb347',onChange:v=>setLaneVolume(p=>({...p,kick:v,snare:Math.min(1.2,v*0.96),hat:Math.min(1.2,v*0.82)}))},
+          {label:'BASS VOL',value:laneVolume.bass,min:0,max:1.2,color:'#22d3ee',onChange:v=>setLaneVolume(p=>({...p,bass:v}))},
+          {label:'SYN VOL',value:laneVolume.synth,min:0,max:1.2,color:gc,onChange:v=>setLaneVolume(p=>({...p,synth:v}))},
+          {label:'SYN PROB',value:laneProbability.synth,min:0,max:1,color:gc,onChange:v=>setLaneProbability(p=>({...p,synth:v}))},
+          {label:'CHORD',value:synthChordChance,min:0,max:1,color:'#c084fc',onChange:v=>setSynthChordChance(v)},
+          {label:'HOLD',value:synthHold,min:0,max:1,color:'#7dd3fc',onChange:v=>setSynthHold(v)},
+        ].map(({label,value,min,max,color,onChange})=>(
+          <div key={label} style={{display:'flex',flexDirection:'column',gap:1}}>
+            <div style={{display:'flex',justifyContent:'space-between'}}>
+              <span style={{fontSize:6.4,letterSpacing:'0.08em',color:'rgba(255,255,255,0.94)',textTransform:'uppercase'}}>{label}</span>
+              <span style={{fontSize:6.4,color, fontFamily:'Space Mono,monospace'}}>{(((value-min)/(max-min||1))*100).toFixed(0)}</span>
+            </div>
+            <input type="range" min={min} max={max} step={0.01} value={value} onChange={e=>onChange(Number(e.target.value))} style={{width:'100%',accentColor:color,height:12}}/>
+          </div>
+        ))}
+        <label style={{display:'flex',flexDirection:'column',gap:1}}>
+          <span style={{fontSize:6.4,letterSpacing:'0.08em',color:'rgba(255,255,255,0.94)',textTransform:'uppercase'}}>SYN CURVE</span>
+          <select value={synthCurve} onChange={e=>setSynthCurve(e.target.value)} style={{background:'rgba(255,255,255,0.04)',border:`1px solid ${gc}33`,color:gc,borderRadius:3,padding:'3px 5px',fontSize:7.1,fontFamily:'Space Mono,monospace'}}>
+            {SYNTH_CURVES.map(cur=><option key={cur} value={cur} style={{color:'#111',background:'#f2f2f2'}}>{cur}</option>)}
+          </select>
+        </label>
+
         <div style={{flex:1}}/>
 
         {/* Scenes */}
@@ -2439,7 +2551,7 @@ function PresetSelect({label,value,options,onChange,accent='#ffffff',compact=fal
 // ─────────────────────────────────────────────────────────────────────────────
 // STUDIO VIEW — detailed editor
 // ─────────────────────────────────────────────────────────────────────────────
-function StudioView({genre,gc,patterns,bassLine,synthLine,laneLen,step,page,setPage,toggleCell,setNote,modeName,laneVU,space,setSpace,tone,setTone,noiseMix,setNoiseMix,drive,setDrive,compress,setCompress,bassFilter,setBassFilter,synthFilter,setSynthFilter,drumDecay,setDrumDecay,bassSubAmt,setBassSubAmt,fmIdx,setFmIdx,master,setMaster,swing,setSwing,humanize,setHumanize,grooveAmt,setGrooveAmt,grooveProfile,setGrooveProfile,regenerateSection,currentSectionName,undoLen,undo,recState,startRec,stopRec,recordings,exportJSON,importRef,importJSON,savedScenes,saveScene,loadScene,projectName,setProjectName,clearPattern,polySynth,setPolySynth,bassStack,setBassStack,bassPreset,synthPreset,drumPreset,performancePreset,applyBassPreset,applySynthPreset,applyDrumPreset,applyPerformancePreset,compact,phone}){
+function StudioView({genre,gc,patterns,bassLine,synthLine,laneLen,step,page,setPage,toggleCell,setNote,modeName,laneVU,space,setSpace,tone,setTone,noiseMix,setNoiseMix,drive,setDrive,compress,setCompress,bassFilter,setBassFilter,synthFilter,setSynthFilter,drumDecay,setDrumDecay,bassSubAmt,setBassSubAmt,fmIdx,setFmIdx,master,setMaster,swing,setSwing,humanize,setHumanize,grooveAmt,setGrooveAmt,grooveProfile,setGrooveProfile,regenerateSection,currentSectionName,undoLen,undo,recState,startRec,stopRec,recordings,exportJSON,importRef,importJSON,savedScenes,saveScene,loadScene,projectName,setProjectName,clearPattern,polySynth,setPolySynth,bassStack,setBassStack,bassPreset,synthPreset,drumPreset,performancePreset,applyBassPreset,applySynthPreset,applyDrumPreset,applyPerformancePreset,laneVolume,setLaneVolume,laneProbability,setLaneProbability,synthChordChance,setSynthChordChance,synthHold,setSynthHold,synthCurve,setSynthCurve,compact,phone}){
   const [tab,setTab]=useState('mixer');
   const [noteEditLane,setNoteEditLane]=useState('bass');
   const visibleStart=page*16,visibleEnd=Math.min(visibleStart+16,MAX_STEPS);
@@ -2560,6 +2672,25 @@ function StudioView({genre,gc,patterns,bassLine,synthLine,laneLen,step,page,setP
               </div>
             ))}
             <div>
+              <div style={{fontSize:6.75,color:'rgba(255,255,255,0.92)',letterSpacing:'0.1em',marginBottom:2,textTransform:'uppercase'}}>LANE MIX</div>
+              {[
+                {l:'DRUM VOL',v:laneVolume.kick,s:v=>setLaneVolume(p=>({...p,kick:v,snare:Math.min(1.2,v*0.96),hat:Math.min(1.2,v*0.82)})),min:0,max:1.2,c:'#ffb347'},
+                {l:'BASS VOL',v:laneVolume.bass,s:v=>setLaneVolume(p=>({...p,bass:v})),min:0,max:1.2,c:LANE_CLR.bass},
+                {l:'SYNTH VOL',v:laneVolume.synth,s:v=>setLaneVolume(p=>({...p,synth:v})),min:0,max:1.2,c:LANE_CLR.synth},
+                {l:'DRUM PROB',v:laneProbability.kick,s:v=>setLaneProbability(p=>({...p,kick:v,snare:v,hat:v})),min:0,max:1,c:'#ffb347'},
+                {l:'BASS PROB',v:laneProbability.bass,s:v=>setLaneProbability(p=>({...p,bass:v})),min:0,max:1,c:LANE_CLR.bass},
+                {l:'SYNTH PROB',v:laneProbability.synth,s:v=>setLaneProbability(p=>({...p,synth:v})),min:0,max:1,c:LANE_CLR.synth},
+              ].map(({l,v,s,c,min=0,max=1})=>(
+                <div key={l}>
+                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:0}}>
+                    <span style={{fontSize:6.75,letterSpacing:'0.08em',color:'rgba(255,255,255,0.94)',textTransform:'uppercase'}}>{l}</span>
+                    <span style={{fontSize:6.75,color:c,fontFamily:'Space Mono,monospace'}}>{((v-min)/(max-min)*100).toFixed(0)}</span>
+                  </div>
+                  <input type="range" min={min} max={max} step={0.01} value={v} onChange={e=>s(Number(e.target.value))} style={{width:'100%',accentColor:c,color:c,height:12}}/>
+                </div>
+              ))}
+            </div>
+            <div>
               <div style={{fontSize:6.75,color:'rgba(255,255,255,0.92)',letterSpacing:'0.1em',marginBottom:2,textTransform:'uppercase'}}>GROOVE PROFILE</div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:2}}>
                 {['steady','broken','bunker','float'].map(gp=>(
@@ -2588,6 +2719,27 @@ function StudioView({genre,gc,patterns,bassLine,synthLine,laneLen,step,page,setP
             </div>
             <div style={{marginTop:3,fontSize:7.25,color:'rgba(255,255,255,0.88)',lineHeight:1.5}}>
               Click to regenerate with that section's feel.
+            </div>
+            <div style={{marginTop:4}}>
+              <div style={{fontSize:6.75,color:'rgba(255,255,255,0.92)',letterSpacing:'0.1em',marginBottom:2,textTransform:'uppercase'}}>SYNTH EXPRESSION</div>
+              {[
+                {l:'CHORD CHANCE',v:synthChordChance,s:setSynthChordChance,c:'#c084fc'},
+                {l:'HOLD',v:synthHold,s:setSynthHold,c:'#7dd3fc'},
+              ].map(({l,v,s,c})=>(
+                <div key={l}>
+                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:0}}>
+                    <span style={{fontSize:6.75,letterSpacing:'0.08em',color:'rgba(255,255,255,0.94)',textTransform:'uppercase'}}>{l}</span>
+                    <span style={{fontSize:6.75,color:c,fontFamily:'Space Mono,monospace'}}>{(v*100).toFixed(0)}</span>
+                  </div>
+                  <input type="range" min={0} max={1} step={0.01} value={v} onChange={e=>s(Number(e.target.value))} style={{width:'100%',accentColor:c,color:c,height:12}}/>
+                </div>
+              ))}
+              <label style={{display:'flex',flexDirection:'column',gap:2,marginTop:4}}>
+                <span style={{fontSize:6.75,color:'rgba(255,255,255,0.93)',letterSpacing:'0.12em',textTransform:'uppercase'}}>SYNTH CURVE</span>
+                <select value={synthCurve} onChange={e=>setSynthCurve(e.target.value)} style={{background:'rgba(255,255,255,0.04)',border:`1px solid ${gc}33`,color:gc,borderRadius:4,padding:'5px 7px',fontSize:7.75,fontFamily:'Space Mono,monospace',outline:'none'}}>
+                  {SYNTH_CURVES.map(cur=><option key={cur} value={cur} style={{color:'#111',background:'#f2f2f2'}}>{cur}</option>)}
+                </select>
+              </label>
             </div>
           </>}
 
