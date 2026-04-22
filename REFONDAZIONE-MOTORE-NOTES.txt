@@ -1,0 +1,20 @@
+CESIRA — Refondazione motore compositivo
+
+Aggiornamenti inclusi:
+- rimossi i generi house, techno e ambient dal DNA attivo e dalla selezione UI
+- generi attivi ora: acid, industrial, dnb, cinematic, experimental
+- introdotto NOTE_ROLE operativo: DL, DA, DE, BL, BA, BE
+- i ruoli nota influenzano davvero il fraseggio in buildMelodicLine
+- introdotto trigger engine compositivo:
+  - repetition
+  - lowContrast
+  - energyStall
+  - hookFound
+  - sectionOverstay
+- i trigger influenzano ritmo e comportamento melodico invece di restare descrittivi
+- fallback e load di scene vecchie con generi rimossi riportati su acid
+- build Vercel validata
+
+Nota onesta:
+- i preset con nomi storici (es. HOUSE ORGAN) possono ancora esistere come timbri,
+  ma non esistono più i generi house/techno/ambient come DNA attivo del motore.

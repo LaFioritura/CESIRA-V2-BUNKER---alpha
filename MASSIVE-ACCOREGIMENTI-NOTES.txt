@@ -1,0 +1,17 @@
+CESIRA — MASSIVE ACCORGIMENTI
+
+What was strengthened in this package:
+- composition trigger layer made more explicit and consequential
+- motif transformation modes added: preserve, answer, stepAnswer, lift, invert, stretch, fragment, sparse, push, anchor, displace, drift, hookFocus
+- phrase classification added: primary, secondary, bridge, pedal, filler
+- NOTE_ROLE now acts inside melodic phrase generation more consistently
+- synth chord voicings widened and made more section/energy-aware
+- synth stereo spread improved by voice panning
+- hat stereo movement improved subtly
+- note lengths extended more intelligently, especially for synth phrases and hook moments
+- hook memory ranking strengthened with primary hook preservation
+
+Package remains:
+- Vercel ready
+- no node_modules included
+- build validated after patching
