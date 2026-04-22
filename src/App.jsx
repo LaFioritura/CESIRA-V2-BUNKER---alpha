@@ -22,22 +22,22 @@ const CHARACTER_BY_GENRE={dnb:'dirty',acid:'dirty',industrial:'dark',experimenta
 const getGenreSoundCharacter=genre=>CHARACTER_BY_GENRE[genre]||pick(Object.keys(SOUND_CHARACTERS));
 
 const GENRE_FAMILY_PROFILES={
-  dnb:{drive:0.1,tone:0.0,space:-0.02,motion:0.08,accent:0.06,hookBias:0.78,fillBias:'break',bassRole:'pressure',synthRole:'stab'},
-  acid:{drive:0.14,tone:-0.03,space:-0.02,motion:0.1,accent:0.05,hookBias:0.82,fillBias:'squelch',bassRole:'lead',synthRole:'answer'},
-  industrial:{drive:0.18,tone:-0.08,space:-0.05,motion:0.07,accent:0.08,hookBias:0.58,fillBias:'impact',bassRole:'weight',synthRole:'shard'},
-  experimental:{drive:0.05,tone:0.03,space:0.07,motion:0.14,accent:0.03,hookBias:0.52,fillBias:'glitch',bassRole:'shape',synthRole:'gesture'},
-  cinematic:{drive:-0.03,tone:0.1,space:0.12,motion:0.04,accent:0.01,hookBias:0.56,fillBias:'swell',bassRole:'pedal',synthRole:'theme'},
+  dnb:{drive:0.18,tone:0.08,space:-0.01,motion:0.1,accent:0.08,hookBias:0.78,fillBias:'break',bassRole:'pressure',synthRole:'stab'},
+  acid:{drive:0.2,tone:0.02,space:-0.02,motion:0.12,accent:0.07,hookBias:0.82,fillBias:'squelch',bassRole:'lead',synthRole:'answer'},
+  industrial:{drive:0.28,tone:-0.14,space:-0.06,motion:0.08,accent:0.1,hookBias:0.58,fillBias:'impact',bassRole:'weight',synthRole:'shard'},
+  experimental:{drive:0.12,tone:0.12,space:0.12,motion:0.18,accent:0.04,hookBias:0.52,fillBias:'glitch',bassRole:'shape',synthRole:'gesture'},
+  cinematic:{drive:-0.04,tone:-0.08,space:0.2,motion:0.04,accent:0.01,hookBias:0.56,fillBias:'swell',bassRole:'pedal',synthRole:'theme'},
 };
 const getGenreFamilyProfile=genre=>GENRE_FAMILY_PROFILES[genre]||GENRE_FAMILY_PROFILES.acid;
 
 
 const SOUND_FAMILY_PROFILES={
   drums:{
-    pressure:{drive:0.18,tone:0.04,space:0.02,transient:0.14,noise:-0.03,air:0.02,comp:0.18},
-    corrode:{drive:0.3,tone:-0.08,space:-0.04,transient:0.08,noise:0.12,air:-0.02,comp:0.24},
-    metallic:{drive:0.16,tone:0.08,space:0.01,transient:0.12,noise:0.06,air:0.12,comp:0.16},
-    dust:{drive:0.06,tone:-0.02,space:0.03,transient:-0.04,noise:0.08,air:-0.04,comp:0.08},
-    deep:{drive:0.1,tone:-0.04,space:0.06,transient:0.02,noise:-0.02,air:0.0,comp:0.12},
+    pressure:{drive:0.22,tone:0.08,space:0.01,transient:0.18,noise:-0.02,air:0.06,comp:0.2},
+    corrode:{drive:0.36,tone:-0.12,space:-0.06,transient:0.1,noise:0.18,air:-0.04,comp:0.28},
+    metallic:{drive:0.14,tone:0.14,space:0.02,transient:0.16,noise:0.08,air:0.18,comp:0.18},
+    dust:{drive:0.08,tone:-0.04,space:0.05,transient:-0.02,noise:0.14,air:-0.02,comp:0.1},
+    deep:{drive:0.06,tone:-0.1,space:0.12,transient:0.04,noise:-0.06,air:0.02,comp:0.14},
   },
   bass:{
     acid_bite:{drive:0.28,filter:0.16,motion:0.12,detune:0.008,air:0.0,layer:0.22},
@@ -64,6 +64,15 @@ const GENRE_SOUND_FAMILY_MAP={
 const getGenreSoundFamilies=genre=>GENRE_SOUND_FAMILY_MAP[genre]||GENRE_SOUND_FAMILY_MAP.acid;
 const getSoundFamilyConfig=(kind,family)=>SOUND_FAMILY_PROFILES[kind]?.[family]||Object.values(SOUND_FAMILY_PROFILES[kind]||{})[0]||{};
 
+const GENRE_MIX_PROFILES={
+  acid:{drumAir:0.08,drumOpen:0.1,drumDrive:0.08,bassBody:0.06,synthAir:0.02},
+  industrial:{drumAir:-0.02,drumOpen:-0.04,drumDrive:0.18,bassBody:0.1,synthAir:-0.04},
+  dnb:{drumAir:0.12,drumOpen:0.12,drumDrive:0.04,bassBody:0.12,synthAir:0.06},
+  cinematic:{drumAir:0.04,drumOpen:0.0,drumDrive:-0.02,bassBody:0.04,synthAir:0.14},
+  experimental:{drumAir:0.1,drumOpen:0.06,drumDrive:0.06,bassBody:0.08,synthAir:0.12},
+};
+const getGenreMixProfile=genre=>GENRE_MIX_PROFILES[genre]||GENRE_MIX_PROFILES.acid;
+
 
 const DRUM_VOICE_PROFILES={
   kick:[
@@ -75,6 +84,8 @@ const DRUM_VOICE_PROFILES={
     {name:'cinematic_boom',body:0.96,click:0.12,sub:1.02,tail:0.34,brightness:-0.16,pitch:0.9,decay:1.24,drive:0.05},
     {name:'tight_dry',body:0.86,click:0.48,sub:0.7,tail:0.05,brightness:0.1,pitch:1.04,decay:0.72,drive:0.1},
     {name:'long_boom',body:1.02,click:0.22,sub:1.14,tail:0.26,brightness:-0.12,pitch:0.92,decay:1.32,drive:0.08},
+    {name:'rubber_thump',body:0.94,click:0.28,sub:1.0,tail:0.14,brightness:-0.04,pitch:0.98,decay:0.88,drive:0.12},
+    {name:'glassy_punch',body:0.82,click:0.92,sub:0.66,tail:0.04,brightness:0.2,pitch:1.08,decay:0.68,drive:0.16},
   ],
   snare:[
     {name:'dry_snap',noise:0.56,body:0.58,snap:0.76,brightness:0.08,decay:0.82,metal:0.04},
@@ -85,6 +96,8 @@ const DRUM_VOICE_PROFILES={
     {name:'gated_hit',noise:0.52,body:0.74,snap:0.68,brightness:0.02,decay:0.68,metal:0.06},
     {name:'wide_rave',noise:0.8,body:0.58,snap:0.76,brightness:0.14,decay:1.1,metal:0.04},
     {name:'industrial_noise',noise:0.96,body:0.44,snap:0.7,brightness:0.04,decay:0.88,metal:0.18},
+    {name:'papery_clap',noise:0.74,body:0.38,snap:0.62,brightness:0.1,decay:0.86,metal:0.0},
+    {name:'cinema_thud',noise:0.34,body:1.04,snap:0.48,brightness:-0.06,decay:1.18,metal:0.0},
   ],
   hat:[
     {name:'crisp_closed',noise:0.58,air:0.16,brightness:0.14,decay:0.82,open:0.84,pan:0.08},
@@ -95,6 +108,8 @@ const DRUM_VOICE_PROFILES={
     {name:'broken_digital',noise:0.72,air:0.12,brightness:0.12,decay:0.84,open:0.9,pan:0.14},
     {name:'wash_open',noise:0.62,air:0.26,brightness:0.08,decay:1.16,open:1.24,pan:0.16},
     {name:'sharp_narrow',noise:0.48,air:0.04,brightness:0.2,decay:0.74,open:0.82,pan:0.06},
+    {name:'glass_air',noise:0.42,air:0.32,brightness:0.22,decay:0.94,open:1.06,pan:0.12},
+    {name:'sand_sizzle',noise:0.9,air:0.18,brightness:0.02,decay:1.08,open:1.14,pan:0.18},
   ],
 };
 
@@ -105,54 +120,57 @@ function chooseDrumVoice(kind,sectionName,genre,accent,energy,variation={}){
   let idx=0;
   if(kind==='kick'){
     if(sec==='drop') idx=accent>0.95?1:6;
-    else if(sec==='build') idx=2;
-    else if(sec==='break') idx=5;
-    else if(sec==='cinematic') idx=7;
+    else if(sec==='build') idx=accent>0.9?9:2;
+    else if(sec==='break') idx=energy<0.35?5:8;
     else if(sec==='fill') idx=4;
+    else if(sec==='outro') idx=8;
     else idx=0;
-    if(genre==='industrial') idx=4;
-    else if(genre==='cinematic') idx=accent>0.86?5:7;
-    else if(genre==='dnb') idx=accent>0.96?1:6;
-    else if(genre==='experimental') idx=variation.variant?3:4;
-    else if(genre==='acid') idx=accent>0.96?1:2;
+    if(genre==='industrial') idx=accent>0.92?4:3;
+    else if(genre==='cinematic') idx=energy<0.4?5:7;
+    else if(genre==='dnb') idx=accent>0.96?1:9;
+    else if(genre==='experimental') idx=variation.variant?3:8;
+    else if(genre==='acid') idx=accent>0.94?9:2;
   } else if(kind==='snare'){
     if(sec==='drop') idx=1;
     else if(sec==='build') idx=2;
-    else if(sec==='break') idx=3;
+    else if(sec==='break') idx=9;
     else if(sec==='fill') idx=5;
+    else if(sec==='outro') idx=8;
     else idx=0;
-    if(genre==='industrial') idx=7;
-    else if(genre==='cinematic') idx=accent>0.88?6:3;
+    if(genre==='industrial') idx=accent>0.9?7:2;
+    else if(genre==='cinematic') idx=energy<0.45?9:8;
     else if(genre==='experimental') idx=variation.variant?2:4;
     else if(genre==='dnb') idx=accent>0.9?2:0;
     else if(genre==='acid') idx=4;
   } else if(kind==='hat'){
     if(sec==='drop') idx=0;
     else if(sec==='build') idx=3;
-    else if(sec==='break') idx=4;
+    else if(sec==='break') idx=8;
     else if(sec==='fill') idx=5;
-    else idx=1;
-    if(genre==='industrial') idx=3;
-    else if(genre==='cinematic') idx=4;
-    else if(genre==='experimental') idx=variation.variant?5:2;
+    else if(sec==='outro') idx=1;
+    else idx=9;
+    if(genre==='industrial') idx=variation.variant?3:2;
+    else if(genre==='cinematic') idx=energy>0.55?6:8;
+    else if(genre==='experimental') idx=variation.variant?5:9;
     else if(genre==='dnb') idx=variation.variant?6:0;
     else if(genre==='acid') idx=variation.variant?7:0;
   }
   if(energy>0.82 && kind==='kick') idx=(idx+1)%bank.length;
-  if(energy<0.34 && kind==='hat') idx=4;
+  if(energy<0.34 && kind==='hat') idx=8;
   const base=bank[idx%bank.length];
-  const alt=bank[(idx + (variation.variant?1:0) + ((variation.variantBias||0)>0.12?1:0))%bank.length];
-  return (variation.variantBias||0)>0.16 && rnd()<0.52 ? alt : base;
+  const alt=bank[(idx + (variation.variant?1:0) + ((variation.variantBias||0)>0.12?1:0) + (accent>0.94?1:0))%bank.length];
+  return ((variation.variantBias||0)>0.12 || accent>0.95) && rnd()<0.58 ? alt : base;
 }
 
-function getDrumContextModifiers(kind,sectionName,energy,accent,variation={},voice={}){
+function getDrumContextModifiers(kind,sectionName,energy,accent,variation={},voice={},genre='acid'){
   const sec=sectionName||'groove';
   const accentStrong=accent>0.9;
-  const toneOpen=(sec==='drop'?1.16:sec==='build'?1.06:sec==='break'?0.92:sec==='fill'?1.08:1.0) + (voice.brightness||0)*0.18 + (variation.toneShift||0)*0.08 + energy*0.06;
+  const mix=getGenreMixProfile(genre);
+  const toneOpen=(sec==='drop'?1.18:sec==='build'?1.08:sec==='break'?0.94:sec==='fill'?1.1:1.0) + (voice.brightness||0)*0.18 + (variation.toneShift||0)*0.08 + energy*0.06 + (mix.drumOpen||0);
   const decayMul=(sec==='drop'?0.96:sec==='build'?0.88:sec==='break'?1.08:sec==='fill'?0.9:1.0) * (voice.decay||1) * (accentStrong?0.98:1.03);
   const transientMul=(accentStrong?1.18:0.96) * (1 + (voice.click||voice.snap||0)*0.08);
-  const driveMul=1 + (voice.drive||voice.metal||0)*0.35 + (sec==='fill'?0.06:0) + (variation.variantBias||0)*0.1;
-  const airMul=(sec==='break'?1.22:sec==='build'?1.08:1.0) * (1 + (voice.air||0)*0.4);
+  const driveMul=1 + (voice.drive||voice.metal||0)*0.35 + (sec==='fill'?0.06:0) + (variation.variantBias||0)*0.1 + (mix.drumDrive||0);
+  const airMul=(sec==='break'?1.22:sec==='build'?1.08:1.0) * (1 + (voice.air||0)*0.4 + (mix.drumAir||0));
   const openMul=(voice.open||1) * (sec==='break'?1.08:sec==='build'?1.02:1.0);
   return {toneOpen,decayMul,transientMul,driveMul,airMul,openMul};
 }
@@ -1542,12 +1560,13 @@ export default function App(){
       g.gain.value=laneVolumeRef.current[lane]??1;
       const familyKind=lane==='kick'||lane==='snare'||lane==='hat'?'drums':lane;
       const families=getActiveSoundFamilies(compositionRef.current,genre);
+      const mix=getGenreMixProfile(genre);
       const famName=families[familyKind]||getGenreSoundFamilies(genre)[familyKind];
       const famCfg=getSoundFamilyConfig(familyKind,famName);
       const sh=a.ctx.createWaveShaper();
-      driveCurve(sh,clamp(0.06+(famCfg.drive||0)*0.22,0,0.42));
+      driveCurve(sh,clamp(0.06+(famCfg.drive||0)*0.22+(mix.drumDrive||0)*0.12,0,0.56));
       const toneF=a.ctx.createBiquadFilter(); toneF.type=familyKind==='bass'?'lowpass':'highpass';
-      toneF.frequency.value=familyKind==='drums'?clamp(6000+(famCfg.air||0)*6000,3500,15000):familyKind==='bass'?clamp(420+(famCfg.filter||0)*900,180,2200):clamp(240+(famCfg.filter||0)*2600,180,9000);
+      toneF.frequency.value=familyKind==='drums'?clamp(6800+(famCfg.air||0)*7200+(mix.drumAir||0)*2200,3800,18000):familyKind==='bass'?clamp(420+(famCfg.filter||0)*900+(mix.bassBody||0)*700,180,2600):clamp(240+(famCfg.filter||0)*2600+(mix.synthAir||0)*1600,180,10000);
       const comp=a.ctx.createDynamicsCompressor(); comp.threshold.value=-24-(famCfg.comp||0)*10; comp.ratio.value=1.8+(famCfg.comp||0)*5; comp.attack.value=0.006; comp.release.value=0.16+(famCfg.space||0)*0.14;
       const send=a.ctx.createGain(); send.gain.value=clamp((familyKind==='synth'?0.08:familyKind==='drums'?0.03:0.02)+Math.max(0,famCfg.space||0)*0.08,0,0.18);
       g.connect(sh); sh.connect(toneF); toneF.connect(comp); comp.connect(a.bus); comp.connect(send); send.connect(a.revW);
@@ -1569,10 +1588,11 @@ export default function App(){
       const familyKind=bus.familyKind;
       const families=getActiveSoundFamilies(compositionRef.current,genre);
       const famCfg=getSoundFamilyConfig(familyKind,families[familyKind]||getGenreSoundFamilies(genre)[familyKind]);
-      driveCurve(bus.sh,clamp(0.05+(famCfg.drive||0)*0.24+(drive*0.04),0,0.46));
-      if(familyKind==='drums')bus.toneF.frequency.setTargetAtTime(clamp(5200+(famCfg.air||0)*5200+(tone*900),3000,16000),a.ctx.currentTime,0.04);
-      else if(familyKind==='bass')bus.toneF.frequency.setTargetAtTime(clamp(420+(famCfg.filter||0)*900+bassFilter*1400,180,2200),a.ctx.currentTime,0.04);
-      else bus.toneF.frequency.setTargetAtTime(clamp(420+(famCfg.filter||0)*2600+synthFilter*4200,220,12000),a.ctx.currentTime,0.04);
+      const mix=getGenreMixProfile(genre);
+      driveCurve(bus.sh,clamp(0.05+(famCfg.drive||0)*0.24+(drive*0.04)+(familyKind==='drums'?(mix.drumDrive||0)*0.16:0),0,0.58));
+      if(familyKind==='drums')bus.toneF.frequency.setTargetAtTime(clamp(6400+(famCfg.air||0)*6200+(tone*1100)+(mix.drumAir||0)*2200,3400,18000),a.ctx.currentTime,0.04);
+      else if(familyKind==='bass')bus.toneF.frequency.setTargetAtTime(clamp(420+(famCfg.filter||0)*900+bassFilter*1400+(mix.bassBody||0)*600,180,2600),a.ctx.currentTime,0.04);
+      else bus.toneF.frequency.setTargetAtTime(clamp(420+(famCfg.filter||0)*2600+synthFilter*4200+(mix.synthAir||0)*1600,220,14000),a.ctx.currentTime,0.04);
       bus.comp.threshold.value=clamp(-24-(famCfg.comp||0)*10-compress*4,-36,-8);
       bus.comp.ratio.value=clamp(1.6+(famCfg.comp||0)*4+compress*2,1.2,8);
       bus.send.gain.setTargetAtTime(clamp((familyKind==='synth'?0.08:familyKind==='drums'?0.03:0.02)+space*0.08+Math.max(0,famCfg.space||0)*0.08,0,0.22),a.ctx.currentTime,0.05);
@@ -1674,11 +1694,12 @@ export default function App(){
     const sectionName=currentSectionNameRef.current||'groove';
     const drumFamilyCfg=getSoundFamilyConfig('drums', getActiveSoundFamilies(compositionRef.current,genre).drums);
     const voice=chooseDrumVoice('kick',sectionName,genre,accent,energy,variation);
-    const ctxMod=getDrumContextModifiers('kick',sectionName,energy,accent,variation,voice);
-    const kickTone=clamp((drumPresetCfg.kickTone??0.6)+charCfg.toneBias*0.42+(variation.toneShift||0)*0.55+(variation.variantBias||0)*0.4+energy*0.04+(drumFamilyCfg.tone||0)*0.45+(voice.brightness||0)*0.18,0.18,1.15);
+    const ctxMod=getDrumContextModifiers('kick',sectionName,energy,accent,variation,voice,genre);
+    const genreMix=getGenreMixProfile(genre);
+    const kickTone=clamp((drumPresetCfg.kickTone??0.6)+charCfg.toneBias*0.42+(variation.toneShift||0)*0.55+(variation.variantBias||0)*0.4+energy*0.04+(drumFamilyCfg.tone||0)*0.45+(voice.brightness||0)*0.18+(genreMix.drumOpen||0)*0.6,0.18,1.22);
     const kf=gd.kickFreq||90,ke=gd.kickEnd||35;
     const startFreq=clamp(kf*(0.9+kickTone*0.34)*(voice.pitch||1)*(1+((variation.variantBias||0)-0.08)*0.03),42,160);
-    const endFreq=clamp(ke*(0.82+kickTone*0.36)*(voice.pitch?Math.max(0.82,voice.pitch*0.92):1),18,78);
+    const endFreq=clamp(ke*(0.84+kickTone*0.4)*(voice.pitch?Math.max(0.82,voice.pitch*0.92):1),18,86);
     const et=(0.055+drumDecay*0.14+(1-kickTone)*0.022+Math.max(-0.015,(variation.decayShift||0)*0.028))*ctxMod.decayMul;
     const dt=(0.12+drumDecay*0.24+(1-kickTone)*0.032+Math.max(-0.03,(variation.decayShift||0)*0.05))*ctxMod.decayMul;
     const body=a.ctx.createOscillator(),bG=a.ctx.createGain();
@@ -1726,8 +1747,9 @@ export default function App(){
     const sectionName=currentSectionNameRef.current||'groove';
     const drumFamilyCfg=getSoundFamilyConfig('drums', getActiveSoundFamilies(compositionRef.current,genre).drums);
     const voice=chooseDrumVoice('snare',sectionName,genre,accent,energy,variation);
-    const ctxMod=getDrumContextModifiers('snare',sectionName,energy,accent,variation,voice);
-    const snareTone=clamp((drumPresetCfg.snareTone??0.6)+charCfg.toneBias*0.42+(variation.toneShift||0)*0.45+(variation.variantBias||0)*0.42+energy*0.03+(drumFamilyCfg.tone||0)*0.34+(voice.brightness||0)*0.18,0.18,1.1);
+    const ctxMod=getDrumContextModifiers('snare',sectionName,energy,accent,variation,voice,genre);
+    const genreMix=getGenreMixProfile(genre);
+    const snareTone=clamp((drumPresetCfg.snareTone??0.6)+charCfg.toneBias*0.42+(variation.toneShift||0)*0.45+(variation.variantBias||0)*0.42+energy*0.03+(drumFamilyCfg.tone||0)*0.34+(voice.brightness||0)*0.18+(genreMix.drumOpen||0)*0.4,0.18,1.16);
     const noiseDur=(0.14+drumDecay*0.1+Math.max(-0.03,(variation.decayShift||0)*0.04))*ctxMod.decayMul;
     const nb=noiseBuffer(noiseDur,0.16+noiseMix*0.34+(voice.noise||0)*0.12+(variation.ghost?0.03:0),gd.noiseColor||'white');
     const src=a.ctx.createBufferSource(),fil=a.ctx.createBiquadFilter(),bp=a.ctx.createBiquadFilter(),snap=a.ctx.createBiquadFilter(),g=a.ctx.createGain();
@@ -1738,7 +1760,7 @@ export default function App(){
     const snapBuf=noiseBuffer(0.018+noiseMix*0.01,0.46,'white');
     const clapBuf=noiseBuffer(0.038+noiseMix*0.012,0.38,'white');
     src.buffer=nb; snapNoise.buffer=snapBuf; clapNoise.buffer=clapBuf;
-    fil.type='bandpass';fil.frequency.value=clamp(900+snareTone*1800+(voice.brightness||0)*600+noiseMix*280,520,3600);fil.Q.value=0.7+compress*0.42+(voice.metal||0)*0.4;
+    fil.type='bandpass';fil.frequency.value=clamp(1100+snareTone*2300+(voice.brightness||0)*900+noiseMix*280+(genreMix.drumOpen||0)*900,520,5200);fil.Q.value=0.7+compress*0.42+(voice.metal||0)*0.4;
     bp.type='highpass';bp.frequency.value=clamp(140+snareTone*260+(voice.body||0)*40,90,620);
     snap.type='bandpass';snap.frequency.value=clamp(2400+snareTone*1900+(voice.brightness||0)*1200+(variation.variant?260:0),1700,6400);snap.Q.value=1.1+(voice.snap||0)*0.4+(variation.ghost?0.15:0.4);
     clapF.type='bandpass';clapF.frequency.value=clamp(1500+snareTone*900+(voice.brightness||0)*600,900,4200);clapF.Q.value=0.85;
@@ -1765,8 +1787,9 @@ export default function App(){
     const sectionName=currentSectionNameRef.current||'groove';
     const drumFamilyCfg=getSoundFamilyConfig('drums', getActiveSoundFamilies(compositionRef.current,genre).drums);
     const voice=chooseDrumVoice('hat',sectionName,genre,accent,energy,variation);
-    const ctxMod=getDrumContextModifiers('hat',sectionName,energy,accent,variation,voice);
-    const hatTone=clamp((drumPresetCfg.hatTone??0.8)+charCfg.toneBias*0.48+(variation.toneShift||0)*0.5+(variation.variantBias||0)*0.42+energy*0.02+(voice.brightness||0)*0.16,0.18,1.12);
+    const ctxMod=getDrumContextModifiers('hat',sectionName,energy,accent,variation,voice,genre);
+    const genreMix=getGenreMixProfile(genre);
+    const hatTone=clamp((drumPresetCfg.hatTone??0.8)+charCfg.toneBias*0.48+(variation.toneShift||0)*0.5+(variation.variantBias||0)*0.42+energy*0.02+(voice.brightness||0)*0.16+(genreMix.drumAir||0)*0.5,0.18,1.18);
     const noiseAmt=(0.12+noiseMix*0.3+(voice.noise||0)*0.08+(variation.variant?0.01:0));
     const nb=noiseBuffer(open?(0.22+drumDecay*0.08)*ctxMod.openMul:(0.072+drumDecay*0.03)*ctxMod.decayMul,noiseAmt,gd.noiseColor||'white');
     const src=a.ctx.createBufferSource(),hp=a.ctx.createBiquadFilter(),bp=a.ctx.createBiquadFilter(),air=a.ctx.createBiquadFilter(),g=a.ctx.createGain();

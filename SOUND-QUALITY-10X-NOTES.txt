@@ -1,0 +1,8 @@
+Aggiornamento sound quality:
+- 10 profili kick reali
+- 10 profili snare reali
+- 10 profili hat reali
+- differenza sonora più marcata tra acid / industrial / dnb / cinematic / experimental
+- kick meno filtrato e più aperto nei contesti forti
+- lane bus con risposta timbrica più legata al genere
+- drum voice selection più variabile tra sezioni, accenti ed energia
