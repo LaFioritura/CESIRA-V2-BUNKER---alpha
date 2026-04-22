@@ -1,0 +1,17 @@
+CESIRA — Massive Composition + Sound Upgrade
+
+Implemented in this package:
+- primary motif selection and reuse for bass/synth
+- deeper trigger consequences driving sustain, density, motif focus, chord bloom
+- genre-driven deep sound families for drums/bass/synth
+- added/strengthened layering in kick, snare, bass, synth
+- lane bus processing per family (drive/filter/compression/send)
+- save/load/export/import now keep soundFamilies and primaryMotifs
+
+Build status:
+- npm install OK
+- npm run build OK
+
+Notes:
+- package is clean for Vercel (no node_modules inside zip)
+- latest built asset at dist/assets/index-BPL_s5rw.js
